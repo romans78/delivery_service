@@ -1,0 +1,36 @@
+services:
+  app:
+    build: .
+    container_name: delivery_service
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - delivery_network
+
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: delivery_service
+    ports:
+      - "3307:3306"
+      - "33070:33060"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    networks:
+      - delivery_network
+
+volumes:
+  mysql_data:
+
+networks:
+  delivery_network:
+    driver: bridge
