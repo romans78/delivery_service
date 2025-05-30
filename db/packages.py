@@ -1,11 +1,11 @@
 from .base import Base
-from sqlalchemy import Column, Integer, String, Enum, Float
+from sqlalchemy import Column, Integer, String, Float
 
 
-class PackageType(str, Enum):
-    clothes = 'одежда'
-    electronics = 'электроника'
-    other = 'разное'
+class PackageType(Base):
+    __tablename__ = 'package_type'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    type_name = Column(String, nullable=False)
 
 
 class Package(Base):
