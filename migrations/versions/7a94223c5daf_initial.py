@@ -9,7 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from db.packages import PackageType
+from db.packages import PackageTypeTable
 
 # revision identifiers, used by Alembic.
 revision: str = '7a94223c5daf'
@@ -25,7 +25,7 @@ def upgrade() -> None:
                     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
                     sa.Column('name', sa.String(200), nullable=False),
                     sa.Column('weight', sa.Float(), nullable=False),
-                    sa.Column('type', sa.Enum(PackageType.clothes, PackageType.electronics, PackageType.other),
+                    sa.Column('type', sa.Enum(PackageTypeTable.clothes, PackageTypeTable.electronics, PackageTypeTable.other),
                               nullable=False),
                     sa.Column('content_value_usd', sa.Float(), nullable=False),
                     sa.PrimaryKeyConstraint('id')
