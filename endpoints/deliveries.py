@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, case, literal_column, String, cast
-from models.packages import PackageCreate, PackageId, PackageType, PackageInfo
+from models.packages import PackageCreate, PackageId, PackageType, PackageInfo, PackageInfoNoId
 from db.packages import PackageTable, PackageTypeTable
 from utils.session import get_session_id, get_db
 from fastapi_pagination import Page
@@ -74,7 +74,7 @@ async def get_package_info_by_session_id(type_name: Optional[str] = Query(None, 
     return await paginate(db, stmt)
 
 
-@router.get('/package/{package_id}', response_model=PackageInfo | dict[str, str],
+@router.get('/package/{package_id}', response_model=PackageInfoNoId | dict[str, str],
             description='This method returns package info by id')
 async def get_package_info_by_id(package_id: int = Path(...), db: AsyncSession = Depends(get_db)):
     logger.info(f"Getting package by package id: {package_id}")
@@ -88,7 +88,7 @@ async def get_package_info_by_id(package_id: int = Path(...), db: AsyncSession =
         package = list(result)
         if package[-1] is None:
             package[-1] = 'Не рассчитано'
-        return PackageInfo(name=package[0],
+        return PackageInfoNoId(name=package[0],
                            weight=package[1],
                            type_name=package[2],
                            content_value_usd=package[3],
