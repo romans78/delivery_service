@@ -55,6 +55,23 @@ class PackageInfo(PackageBase):
             return v
         return round(v, 2)
 
+class PackageInfoNoId(PackageBase):
+    delivery_cost: float | str | None = Field(..., description='Стоимость доставки в рублях')
+    @field_validator('delivery_cost')
+    def validate_delivery_cost(cls, v):
+        if v is None or type(v) is str:
+            return v
+        if 0 < v < 100000000:
+            return v
+        else:
+            raise ValueError('Delivery cost should be greater than 0 and less than 100000000')
+
+    @field_validator('delivery_cost')
+    def round_content_value(cls, v):
+        if v is None or type(v) is str:
+            return v
+        return round(v, 2)
+
 
 class PaginatedPackages(BaseModel):
     data: List[PackageInfo]
