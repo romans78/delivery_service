@@ -17,7 +17,8 @@ RUN pip install --no-cache-dir \
     aiomysql==0.2.0 \
     cryptography==45.0.3 \
     fastapi-pagination==0.13.1 \
-    redis==6.2.0
+    redis==6.2.0 \
+    httpx==0.28.1
 
 COPY . .
 

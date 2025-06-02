@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, List
+from typing import List
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -54,13 +54,7 @@ class PackageInfo(PackageBase):
         if v is None or type(v) is str:
             return v
         return round(v, 2)
-# T = TypeVar('T')
-#
-# class PaginatedResponse(BaseModel, Generic[T]):
-#     data: List[T]
-#     meta: dict
-#
-# PaginatedPackages = PaginatedResponse[PackageInfo]
+
 
 class PaginatedPackages(BaseModel):
     data: List[PackageInfo]
