@@ -1,45 +1,15 @@
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query, Path
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy import select, insert
-from sqlalchemy.orm import sessionmaker
-
-from models.packages import PackageCreate, PackageId, PackageType, PackageInfo
-from utils.db_utils import DATABASE_URL
+from fastapi import APIRouter, Depends, Path, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from models.packages import PackageCreate, PackageId, PackageType, PackageInfo, PaginatedPackages
 from db.packages import PackageTable, PackageTypeTable
-from utils.session import get_session_id
+from utils.session import get_session_id, get_db
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 
 router = APIRouter(prefix='/api/v1', tags=['deliveries'])
-
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    pool_size=50,
-    max_overflow=20,
-    pool_recycle=3600
-)
-
-AsyncSessionLocal = sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autocommit=False,
-    autoflush=True,
-    info=None
-)
-
-
-async def get_db() -> AsyncSession:
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
 
 
 @router.post('/package',
@@ -48,10 +18,12 @@ async def get_db() -> AsyncSession:
 async def register_package(package: PackageCreate,
                            db: AsyncSession = Depends(get_db),
                            session_id: str = Depends(get_session_id)):
+    stmt = select(PackageTypeTable.id).where(PackageTypeTable.type_name == package.type_name.lower())
+    type_id = list((await db.execute(stmt)).first())[0]
     new_package = PackageTable(
         name=package.name,
         weight=package.weight,
-        type_id=1,
+        type_id=type_id,
         content_value_usd=package.content_value_usd,
         session_id=session_id,
         delivery_cost=None
@@ -72,17 +44,51 @@ async def get_package_types(db: AsyncSession = Depends(get_db)):
     return package_type_list
 
 
-@router.get('/packages', response_model=List[PackageInfo] | dict[str, str],
+# @router.get('/packages', response_model=PaginatedPackages,
+#             description='This method returns all user packages')
+# async def get_packages_by_session(page: int = Query(1, ge=1, description='Номер страницы'),
+#                                   limit: int = Query(10, ge=1, le=100, description='Записей на странице'),
+#                                   type_name: Optional[str] = Query(None, description='Фильтр по типу посылки'),
+#                                   has_delivery_cost: Optional[bool] = Query(None, description='Фильтр по наличию расчёта стоимости'),
+#                                   db: AsyncSession = Depends(get_db),
+#                                   session_id: str = Depends(get_session_id)):
+#     offset = (page - 1) * limit
+#
+#     stmt = select(PackageTable.id, PackageTable.name, PackageTable.weight, PackageTable.type_id,
+#                   PackageTypeTable.type_name, PackageTable.content_value_usd, PackageTable.delivery_cost).join(
+#         PackageTypeTable, PackageTable.type_id == PackageTypeTable.id).where(PackageTable.session_id == session_id)
+#     if type_name is not None:
+#         stmt = stmt.where(PackageTypeTable.type_name==type_name)
+#     if has_delivery_cost is not None:
+#         if has_delivery_cost:
+#             stmt = stmt.where(PackageTable.delivery_cost.is_not(None))
+#         else:
+#             stmt = stmt.where(PackageTable.delivery_cost.is_(None))
+#     stmt = stmt.offset(offset).limit(limit)
+#     result = (await db.execute(stmt)).all()
+#
+#     packages = result
+#     return result
+
+@router.get('/packages', response_model=Page[PackageInfo],
             description='This method returns all user packages')
-async def get_packages_by_session(db: AsyncSession = Depends(get_db),
-                                  session_id: str = Depends(get_session_id)):
-    stmt = select(PackageTable.name, PackageTable.weight, PackageTypeTable.type_name.label('type'),
-                  PackageTable.content_value_usd,
-                  PackageTable.delivery_cost).join(PackageTypeTable,
-                                                   PackageTable.type_id == PackageTypeTable.id).where(
-        PackageTable.session_id == session_id)
-    result = (await db.execute(stmt)).all()
-    return result
+async def get_package_info_by_session_id(type_name: Optional[str] = Query(None, description='Фильтр по типу посылки'),
+                                         has_delivery_cost: Optional[bool] = Query(None, description='Фильтр по наличию расчёта стоимости'),
+                                         db: AsyncSession = Depends(get_db),
+                                         session_id: str = Depends(get_session_id)):
+    stmt = select(PackageTable.id, PackageTable.name, PackageTable.weight, PackageTable.type_id,
+                  PackageTypeTable.type_name, PackageTable.content_value_usd, PackageTable.delivery_cost).join(
+        PackageTypeTable, PackageTable.type_id == PackageTypeTable.id).where(PackageTable.session_id == session_id)
+    if type_name is not None:
+        stmt = stmt.where(PackageTypeTable.type_name==type_name)
+    if has_delivery_cost is not None:
+        if has_delivery_cost:
+            stmt = stmt.where(PackageTable.delivery_cost.is_not(None))
+        else:
+            stmt = stmt.where(PackageTable.delivery_cost.is_(None))
+    stmt = stmt.order_by(PackageTable.id)
+    return await paginate(db, stmt)
+
 
 
 @router.get('/package/{package_id}', response_model=PackageInfo | dict[str, str],
@@ -100,7 +106,7 @@ async def get_package_info_by_id(package_id: int = Path(...), db: AsyncSession =
             package[-1] = 'Не рассчитано'
         return PackageInfo(name=package[0],
                            weight=package[1],
-                           type=package[2],
+                           type_name=package[2],
                            content_value_usd=package[3],
                            delivery_cost=package[4])
     else:

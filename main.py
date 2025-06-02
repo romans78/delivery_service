@@ -4,6 +4,7 @@ from middleware.session import SessionMiddleware
 from endpoints import deliveries
 from environs import Env
 import os
+from fastapi_pagination import add_pagination
 
 env = Env()
 
@@ -20,6 +21,7 @@ app = FastAPI(
 )
 
 app.add_middleware(SessionMiddleware)
+add_pagination(app)
 
 
 app.include_router(deliveries.router)
