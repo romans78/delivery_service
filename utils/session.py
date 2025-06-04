@@ -6,9 +6,21 @@ from utils.db_utils import DATABASE_URL
 
 
 def get_session_id(request: Request) -> str:
-    session_id = getattr(request.state, "session_id", None)
+    """
+        Retrieves and validates the session ID from request state.
+
+        Args:
+            request (Request): The incoming FastAPI request
+
+        Returns:
+            str: The validated session ID string
+
+        Raises:
+            HTTPException: 400 Bad Request if the session ID is missing
+    """
+    session_id = getattr(request.state, 'session_id', None)
     if not session_id:
-        raise HTTPException(400, detail="Session ID is missing")
+        raise HTTPException(400, detail='Session ID is missing')
     return session_id
 
 
@@ -40,5 +52,3 @@ async def get_db() -> AsyncSession:
             raise
         finally:
             await session.close()
-
-

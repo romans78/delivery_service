@@ -1,13 +1,14 @@
 import logging
-from typing import List, Optional
+
 from fastapi import APIRouter, Depends, Path, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, case, literal_column, String, cast
-from models.packages import PackageCreate, PackageId, PackageType, PackageInfo, PackageInfoNoId
-from db.packages import PackageTable, PackageTypeTable
-from utils.session import get_session_id, get_db
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, case, literal_column, String, cast
+
+from utils.session import get_session_id, get_db
+from models.packages import PackageCreate, PackageId, PackageType, PackageInfo, PackageInfoNoId
+from db.packages import PackageTable, PackageTypeTable
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,8 +21,26 @@ router = APIRouter(prefix='/api/v1', tags=['deliveries'])
              description='This method registers a package')
 async def register_package(package: PackageCreate,
                            db: AsyncSession = Depends(get_db),
-                           session_id: str = Depends(get_session_id)):
-    logger.info(f"Registering package for session id: {session_id}")
+                           session_id: str = Depends(get_session_id)) -> PackageId:
+    """
+        Registers a new package in the system.
+
+        Creates a package record associated with the current session.
+        The Initial delivery cost is set to None until calculated separately.
+
+        Args:
+            package (PackageCreate): Package creation payload containing:
+                - name: str - Package display name
+                - weight: float - Package weight in kg
+                - type_name: str - Package type name
+                - content_value_usd: float - Declared value in USD
+            db (AsyncSession): Database session dependency
+            session_id (str): Authenticated session identifier
+
+        Returns:
+            PackageId: The ID of the created package
+    """
+    logger.info(f'Registering package for session id: {session_id}')
     stmt = select(PackageTypeTable.id).where(PackageTypeTable.type_name == package.type_name.lower())
     type_id = list((await db.execute(stmt)).first())[0]
     new_package = PackageTable(
@@ -39,28 +58,66 @@ async def register_package(package: PackageCreate,
     return PackageId(id=package_id)
 
 
-@router.get('/package_types', response_model=List[PackageType],
+@router.get('/package_types',
+            response_model=list[PackageType],
             description='This method returns package types and their ids')
-async def get_package_types(db: AsyncSession = Depends(get_db)):
-    logger.info("Getting package types")
+async def get_package_types(db: AsyncSession = Depends(get_db)) -> list[PackageType]:
+    """
+        Retrieves all package types.
+
+        Returns a list of all package types with their identifiers.
+
+        Args:
+            db (AsyncSession): Database session dependency
+
+        Returns:
+            list[PackageType]: List of package types containing:
+                - id: int - Type identifier
+                - type_name: str - Type name
+     """
+    logger.info('Retrieving package types')
     stmt = select(PackageTypeTable)
     result = await db.scalars(stmt)
     package_type_list = result.all()
     return package_type_list
 
 
-@router.get('/packages', response_model=Page[PackageInfo],
+@router.get('/packages',
+            response_model=Page[PackageInfo],
             description='This method returns all user packages')
-async def get_package_info_by_session_id(type_name: Optional[str] = Query(None, description='Фильтр по типу посылки'),
-                                         has_delivery_cost: Optional[bool] = Query(None,
-                                                                                   description='Фильтр по наличию расчёта стоимости'),
-                                         db: AsyncSession = Depends(get_db),
-                                         session_id: str = Depends(get_session_id)):
-    logger.info(f"Getting packages for session id: {session_id}")
+async def get_package_info_by_session_id(
+        type_name: str | None = Query(
+            None,
+            description='Filter by package type name'),
+        has_delivery_cost: bool | None = Query(None,
+                                               description='Filter by delivery cost calculation availability'),
+        db: AsyncSession = Depends(get_db),
+        session_id: str = Depends(get_session_id)) -> Page[PackageInfo]:
+    """
+        Retrieves a paginated package list for the current session with filters.
+
+        Args:
+            type_name (str | None): Optional type name filter
+            has_delivery_cost (bool | None): Filter for delivery cost status:
+                - True: Only packages with calculated cost
+                - False: Only packages without calculated cost
+                - None: All packages (default)
+            db (AsyncSession): Database session dependency
+            session_id (str): Authenticated session identifier
+
+        Returns:
+            Page[PackageInfo]: Paginated result containing:
+                - items: list[PackageInfo] - Package data
+                - total: int - Total matching packages
+                - page: int - Current page number
+                - size: int - Items per page
+    """
+    logger.info(f'Getting packages for session id: {session_id}')
 
     stmt = select(PackageTable.id, PackageTable.name, PackageTable.weight, PackageTable.type_id,
                   PackageTypeTable.type_name, PackageTable.content_value_usd,
-                  case((PackageTable.delivery_cost.is_(None), literal_column("'Не рассчитано'")), else_=cast(PackageTable.delivery_cost, String)).label(
+                  case((PackageTable.delivery_cost.is_(None), literal_column('\'Не рассчитано\'')),
+                       else_=cast(PackageTable.delivery_cost, String)).label(
                       'delivery_cost')).join(
         PackageTypeTable, PackageTable.type_id == PackageTypeTable.id).where(PackageTable.session_id == session_id)
     if type_name is not None:
@@ -74,10 +131,24 @@ async def get_package_info_by_session_id(type_name: Optional[str] = Query(None, 
     return await paginate(db, stmt)
 
 
-@router.get('/package/{package_id}', response_model=PackageInfoNoId | dict[str, str],
+@router.get('/package/{package_id}',
+            response_model=PackageInfoNoId | dict[str, str],
             description='This method returns package info by id')
-async def get_package_info_by_id(package_id: int = Path(...), db: AsyncSession = Depends(get_db)):
-    logger.info(f"Getting package by package id: {package_id}")
+async def get_package_info_by_id(package_id: int = Path(...),
+                                 db: AsyncSession = Depends(get_db)) -> PackageInfoNoId | dict[str, str]:
+    """
+        Retrieves package details by package ID.
+
+        Returns full package information.
+
+        Args:
+            package_id (int): Package identifier
+            db (AsyncSession): Database session dependency
+
+        Returns:
+            PackageInfoNoId | dict: Either package details object or the JSON with the message 'No package for id <id>'
+    """
+    logger.info(f'Getting package by package id: {package_id}')
     stmt = select(PackageTable.name, PackageTable.weight, PackageTypeTable.type_name,
                   PackageTable.content_value_usd,
                   PackageTable.delivery_cost).join(PackageTypeTable,
@@ -89,9 +160,9 @@ async def get_package_info_by_id(package_id: int = Path(...), db: AsyncSession =
         if package[-1] is None:
             package[-1] = 'Не рассчитано'
         return PackageInfoNoId(name=package[0],
-                           weight=package[1],
-                           type_name=package[2],
-                           content_value_usd=package[3],
-                           delivery_cost=package[4])
+                               weight=package[1],
+                               type_name=package[2],
+                               content_value_usd=package[3],
+                               delivery_cost=package[4])
     else:
-        return {"message": f"No package for id {package_id}"}
+        return {'message': f'No package for id {package_id}'}

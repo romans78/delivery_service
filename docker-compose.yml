@@ -14,9 +14,9 @@ services:
       - delivery_network
 
   mysql:
-    image: mysql:latest
+    image: mysql:9.3.0
     environment:
-      MYSQL_ROOT_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
       MYSQL_DATABASE: delivery_service
     ports:
       - "3307:3306"
@@ -24,12 +24,13 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$DATABASE_PASSWORD" ]
       interval: 5s
       timeout: 10s
       retries: 10
     networks:
       - delivery_network
+    restart: unless-stopped
 
   redis:
     image: redis:7
@@ -38,12 +39,13 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 1s
       timeout: 3s
       retries: 30
     networks:
       - delivery_network
+    restart: unless-stopped
 
 volumes:
   mysql_data:

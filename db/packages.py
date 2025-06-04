@@ -1,6 +1,7 @@
-from .base import Base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.dialects.mysql import CHAR
+
+from db.base import Base
 
 
 class PackageTypeTable(Base):

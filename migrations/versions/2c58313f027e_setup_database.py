@@ -37,9 +37,9 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['type_id'], ['package_type.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.execute("INSERT INTO package_type(type_name) values ('одежда')")
-    op.execute("INSERT INTO package_type(type_name) values ('электроника')")
-    op.execute("INSERT INTO package_type(type_name) values ('разное')")
+    op.execute('INSERT INTO package_type(type_name) values (\'одежда\')')
+    op.execute('INSERT INTO package_type(type_name) values (\'электроника\')')
+    op.execute('INSERT INTO package_type(type_name) values (\'разное\')')
     # ### end Alembic commands ###
 
 

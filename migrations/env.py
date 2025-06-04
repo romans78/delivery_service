@@ -2,11 +2,10 @@ from logging.config import fileConfig
 
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
-
 from alembic import context
 import asyncio
-from db import packages # noqa: F401
 
+from db import packages # noqa: F401
 from utils.db_utils import DATABASE_URL
 from db.base import Base
 # this is the Alembic Config object, which provides
@@ -15,7 +14,7 @@ config = context.config
 
 # Set connection db string
 section = config.config_ini_section
-config.set_section_option(section, "DATABASE_CONNECTION_STRING", DATABASE_URL)
+config.set_section_option(section, 'DATABASE_CONNECTION_STRING', DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -46,12 +45,12 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = config.get_main_option('sqlalchemy.url')
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        dialect_opts={'paramstyle': 'named'},
     )
 
     with context.begin_transaction():
@@ -65,14 +64,9 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    # connectable = engine_from_config(
-    #     config.get_section(config.config_ini_section, {}),
-    #     prefix="sqlalchemy.",
-    #     poolclass=pool.NullPool,
-    # )
 
     connectable = create_async_engine(
-        config.get_main_option("sqlalchemy.url"),
+        config.get_main_option('sqlalchemy.url'),
         poolclass=pool.NullPool,
         echo=True
     )
