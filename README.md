@@ -56,6 +56,8 @@
 
 * GET /api/v1/package/{package_id} - Получение информации о посылке по id
 
+* POST /api/v1/package/{package_id}/{shipping_company_id} - Попытка привязки транспортной компании к посылке
+
 * POST /api/v1/tasks/refresh_usd_rate - Обновление курса USD по запросу
 
 * POST /api/v1/tasks/calculate_delivery_cost - Расчет стоимости доставки по запросу
