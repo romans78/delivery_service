@@ -18,7 +18,11 @@ RUN pip install --no-cache-dir \
     cryptography==45.0.3 \
     fastapi-pagination==0.13.1 \
     redis==6.2.0 \
-    httpx==0.28.1
+    httpx==0.28.1 \
+    pytest==8.4.0 \
+    pytest-asyncio==1.0.0 \
+    pytest-cov==6.1.1 \
+    asyncmy==0.2.10
 
 COPY . .
 

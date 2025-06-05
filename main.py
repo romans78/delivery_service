@@ -25,10 +25,24 @@ calculate_delivery_cost_task = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if os.environ.get("TESTING") == "True":
+        yield
+        return
+
     global usd_rate_task, calculate_delivery_cost_task
     usd_rate_task = asyncio.create_task(urt())
     calculate_delivery_cost_task = asyncio.create_task(cdct())
-    yield
+
+    try:
+        yield
+    finally:
+        usd_rate_task.cancel()
+        calculate_delivery_cost_task.cancel()
+        await asyncio.gather(
+            usd_rate_task,
+            calculate_delivery_cost_task,
+            return_exceptions=True
+        )
 
 
 app = FastAPI(

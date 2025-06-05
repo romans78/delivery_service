@@ -78,8 +78,8 @@ async def get_usd_rate(redis_client: Redis) -> float | None:
 
         return usd_rate
 
-    except Exception as e:
-        logger.error(f'The delivery calculation error: {str(e)}')
+    except Exception as ex:
+        logger.error(f'The delivery calculation error: {str(ex)}')
         return None
 
 
@@ -109,8 +109,8 @@ async def calculate_delivery_cost_task():
         except asyncio.CancelledError:
             logger.info('The delivery cost task cancelled')
             raise
-        except Exception as e:
-            logger.error(f'The delivery cost task error: {str(e)}')
+        except Exception as ex:
+            logger.error(f'The delivery cost task error: {str(ex)}')
             # Waiting for 20 seconds before repeating
             await asyncio.sleep(20)
 
@@ -137,5 +137,5 @@ async def calculate_delivery_cost_task_one_time():
     except asyncio.CancelledError:
         logger.info('The delivery cost task cancelled')
         raise
-    except Exception as e:
-        logger.error(f'The delivery cost task error: {str(e)}')
+    except Exception as ex:
+        logger.error(f'The delivery cost task error: {str(ex)}')
