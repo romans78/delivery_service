@@ -1,6 +1,5 @@
 import os
 
-import asyncio
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
@@ -22,14 +21,6 @@ os.environ['TEST_DATABASE_NAME'] = 'test_delivery_service'
 # Test database settings
 TEST_DB_URL = (f'mysql+asyncmy://{os.environ["DATABASE_USER"]}:{os.environ["DATABASE_PASSWORD"]}'
                f'@{os.environ["DATABASE_HOST"]}:{os.environ["DATABASE_PORT"]}/{os.environ["TEST_DATABASE_NAME"]}')
-
-
-@pytest.fixture(scope='session')
-def event_loop():
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.fixture(scope='session')

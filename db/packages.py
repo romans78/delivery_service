@@ -19,3 +19,4 @@ class PackageTable(Base):
     content_value_usd = Column(Float, nullable=False)
     session_id = Column(CHAR(36), nullable=False)
     delivery_cost = Column(Float, nullable=True)
+    shipping_company_id = Column(Integer, nullable=True)

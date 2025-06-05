@@ -48,7 +48,7 @@ async def register_package(package: PackageCreate,
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Package type '{package.type_name.lower()}' not found"
+            detail=f'Package type {package.type_name.lower()} is not found'
         )
     new_package = PackageTable(
         name=package.name,
@@ -174,3 +174,63 @@ async def get_package_info_by_id(package_id: int = Path(...),
                                delivery_cost=package[4])
     else:
         return {'message': f'No package for id {package_id}'}
+
+
+@router.post('/package/{package_id}/{shipping_company_id}',
+             response_model=dict[str, str] | None,
+             description='This method tries to assign shipping company id to the registered package')
+async def assign_shipping_company_id(package_id: int = Path(...),
+                                     shipping_company_id: int = Path(...),
+                                     db: AsyncSession = Depends(get_db)) -> dict[str, str] | None:
+    """
+    Assigns a shipping company ID to a registered package.
+
+    This endpoint assigns a specified shipping company to a package identified by its ID.
+    It performs validation to ensure that the shipping company ID is a positive integer,
+    the package exists, and it hasn't already been assigned to a different company.
+
+    Parameters:
+    - package_id (int): ID of the package to update.
+    - shipping_company_id (int): ID of the shipping company to assign.
+    - db (AsyncSession): SQLAlchemy asynchronous session dependency.
+
+    Returns:
+    - dict[str, str] | None: A message indicating the assignment was successful, or
+      raises an HTTPException in case of validation or conflict errors.
+
+    Raises:
+    - HTTPException 400: If the shipping company ID is not a positive integer.
+    - HTTPException 404: If the package is not found.
+    - HTTPException 409: If the package has already been assigned a shipping company.
+    """
+    logger.info(f'Trying to assign the shipping company id {shipping_company_id}'
+                f' to the registered package with id {package_id}')
+    if shipping_company_id <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Shipping company ID must be a positive integer'
+        )
+    async with db.begin():
+        stmt = (
+            select(PackageTable)
+            .where(PackageTable.id == package_id)
+            .with_for_update()
+        )
+        package = (await db.execute(stmt)).scalar_one_or_none()
+
+        if not package:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Package not found'
+            )
+
+        if package.shipping_company_id is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail='Package already assigned to another company'
+            )
+
+        # Обновляем значение
+        package.shipping_company_id = shipping_company_id
+        await db.commit()
+    return {'message': 'Package successfully assigned to the shipping company'}
