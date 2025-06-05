@@ -41,18 +41,18 @@ async def fetch_and_store_rate():
                 logger.info(f'USD rate updated: {usd_rate}')
             except ConnectionError:
                 logger.error('Redis connection error during set')
-            except Exception as e:
-                logger.error(f'Failed to save rate to Redis: {str(e)}')
+            except Exception as ex:
+                logger.error(f'Failed to save rate to Redis: {str(ex)}')
 
             return usd_rate
-    except httpx.HTTPError as e:
-        logger.error(f'HTTP error: {str(e)}')
-    except Exception as e:
-        logger.error(f'Failed to fetch USD rate: {str(e)}')
+    except httpx.HTTPError as ex:
+        logger.error(f'HTTP error: {str(ex)}')
+    except Exception as ex:
+        logger.error(f'Failed to fetch USD rate: {str(ex)}')
     return None
 
 
-# задача для периодического обновления курса
+# Task for periodic the USD exchange rate updates
 async def usd_rate_task():
     """
         The background task for the USD rate updates.
@@ -63,23 +63,23 @@ async def usd_rate_task():
 
     while True:
         try:
-            # время до следующего обновления (12:00 по Москве)
+            # Time till the next update (12:00 Moscow timezone)
             now = datetime.utcnow()
             next_run = (now + timedelta(days=1)).replace(
                 hour=9, minute=0, second=0, microsecond=0  # UTC 9:00
             )
 
-            # если уже прошло 12:00, устанавливаем следующий run
+            # If it is already after 12:00, then the next run is set
             if now > next_run:
                 next_run += timedelta(days=1)
 
             sleep_seconds = (next_run - now).total_seconds()
             logger.info(f"Next rate update in {sleep_seconds:.0f} seconds at {next_run} UTC")
 
-            # спим до следующего обновления
+            # Sleeps till the next update
             await asyncio.sleep(sleep_seconds)
 
-            # проверяем, если будний день
+            # Checks if the working day
             if next_run.weekday() < 5:
                 await fetch_and_store_rate()
             else:
@@ -87,12 +87,12 @@ async def usd_rate_task():
         except asyncio.CancelledError:
             logger.error("USD rate update task cancelled")
             raise
-        except Exception as e:
-            logger.error(f"Scheduler error: {str(e)}")
+        except Exception as ex:
+            logger.error(f"Scheduler error: {str(ex)}")
             await asyncio.sleep(60)
 
 
-# задача для обновления курса один раз
+# Executes the USD exchange rate update by request
 async def usd_rate_task_one_time():
     """
         Executes a single USD rate update request.
@@ -103,6 +103,6 @@ async def usd_rate_task_one_time():
     except asyncio.CancelledError:
         logger.error("The USD rate update task cancelled")
         raise
-    except Exception as e:
-        logger.error(f"Scheduler error: {str(e)}")
+    except Exception as ex:
+        logger.error(f"Scheduler error: {str(ex)}")
         await asyncio.sleep(60)

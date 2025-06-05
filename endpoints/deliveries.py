@@ -1,8 +1,8 @@
 import logging
 
-from fastapi import APIRouter, Depends, Path, Query
-from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi import APIRouter, Depends, Path, Query, HTTPException, status
+from fastapi_pagination import Page, Params
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, case, literal_column, String, cast
 
@@ -42,7 +42,14 @@ async def register_package(package: PackageCreate,
     """
     logger.info(f'Registering package for session id: {session_id}')
     stmt = select(PackageTypeTable.id).where(PackageTypeTable.type_name == package.type_name.lower())
-    type_id = list((await db.execute(stmt)).first())[0]
+    result = (await db.execute(stmt)).scalars().first()
+    if result:
+        type_id = result
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Package type '{package.type_name.lower()}' not found"
+        )
     new_package = PackageTable(
         name=package.name,
         weight=package.weight,
@@ -77,8 +84,8 @@ async def get_package_types(db: AsyncSession = Depends(get_db)) -> list[PackageT
      """
     logger.info('Retrieving package types')
     stmt = select(PackageTypeTable)
-    result = await db.scalars(stmt)
-    package_type_list = result.all()
+    result = await db.execute(stmt)
+    package_type_list = result.scalars().all()
     return package_type_list
 
 
@@ -92,7 +99,8 @@ async def get_package_info_by_session_id(
         has_delivery_cost: bool | None = Query(None,
                                                description='Filter by delivery cost calculation availability'),
         db: AsyncSession = Depends(get_db),
-        session_id: str = Depends(get_session_id)) -> Page[PackageInfo]:
+        session_id: str = Depends(get_session_id),
+        params: Params = Depends()) -> Page[PackageInfo]:
     """
         Retrieves a paginated package list for the current session with filters.
 
@@ -128,7 +136,7 @@ async def get_package_info_by_session_id(
         else:
             stmt = stmt.where(PackageTable.delivery_cost.is_(None))
     stmt = stmt.order_by(PackageTable.id)
-    return await paginate(db, stmt)
+    return await apaginate(db, stmt, params)
 
 
 @router.get('/package/{package_id}',

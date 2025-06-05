@@ -13,6 +13,25 @@ services:
     networks:
       - delivery_network
 
+  tests:
+    build:
+      context: .
+    container_name: delivery_tests
+    environment:
+      TEST_DATABASE_NAME: test_delivery_service
+      TESTING: "True"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - delivery_network
+    volumes:
+      - .:/app
+    command: >
+      sh -c "pytest -v tests/ --asyncio-mode=auto --cov=. --cov-report=term-missing"
+
   mysql:
     image: mysql:9.3.0
     environment:

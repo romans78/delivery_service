@@ -25,8 +25,8 @@ async def manual_refresh_usd_rate():
     logger.info('Manual refresh USD rate')
     try:
         return await usd_rate_task_one_time()
-    except Exception as e:
-        logger.error(f'Manual USD rate refresh failed: {str(e)}')
+    except Exception as ex:
+        logger.error(f'Manual USD rate refresh failed: {str(ex)}')
         raise
 
 
@@ -43,6 +43,6 @@ async def calculate_delivery_cost():
     logger.info('Manual calculation of delivery cost')
     try:
         return await calculate_delivery_cost_task_one_time()
-    except Exception as e:
-        logger.error(f'Manual calculation of delivery cost failed: {str(e)}')
+    except Exception as ex:
+        logger.error(f'Manual calculation of delivery cost failed: {str(ex)}')
         raise
