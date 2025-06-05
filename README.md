@@ -54,7 +54,7 @@
 
 * GET /api/v1/packages - Получение списка посылок с фильтрацией
 
-* GET /api/v1/package/{package_id} - Получение информации о посылке
+* GET /api/v1/package/{package_id} - Получение информации о посылке по id
 
 * POST /api/v1/tasks/refresh_usd_rate - Обновление курса USD по запросу
 
