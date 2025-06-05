@@ -41,7 +41,7 @@
 
 ## Инструкция по запуску
 1. Клонируйте репозиторий:
-   * git clone https://github.com/romans78/delivery-service.git
+   * git clone https://github.com/romans78/delivery_service.git
    * cd delivery-service
 2. Запустите сервисы:
     * docker-compose up app --build
