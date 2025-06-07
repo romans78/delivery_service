@@ -8,11 +8,11 @@ from utils.session import get_db, get_session_id
 @pytest.fixture
 async def client(db):
     app.dependency_overrides[get_db] = lambda: db
-    app.dependency_overrides[get_session_id] = lambda: "test_session_id"
+    app.dependency_overrides[get_session_id] = lambda: 'test_session_id'
 
     async with AsyncClient(
             transport=ASGITransport(app=app),
-            base_url="http://test"
+            base_url='http://test'
     ) as ac:
         yield ac
 
