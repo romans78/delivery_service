@@ -22,8 +22,11 @@ RUN pip install --no-cache-dir \
     pytest==8.4.0 \
     pytest-asyncio==1.0.0 \
     pytest-cov==6.1.1 \
-    asyncmy==0.2.10
+    asyncmy==0.2.10 \
+    poetry==2.1.3
 
 COPY . .
+
+RUN poetry update
 
 EXPOSE 8888
